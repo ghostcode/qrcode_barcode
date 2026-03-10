@@ -4,10 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CodeForge - 条形码与二维码生成器</title>
+  <title>条形码与二维码生成与解析</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <!-- 正确的 ZXing JS 引入地址 -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -25,6 +28,7 @@
       --accent-glow: rgba(56, 189, 248, 0.4);
       --success: #22c55e;
       --warning: #f59e0b;
+      --error: #ef4444;
     }
 
     * {
@@ -45,7 +49,7 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Animated Background */
+    /* Background Effects */
     .bg-mesh {
       position: fixed;
       top: 0;
@@ -70,7 +74,6 @@
       background: linear-gradient(135deg, #0ea5e9, #0284c7);
       top: -200px;
       right: -100px;
-      animation-delay: 0s;
     }
 
     .mesh-2 {
@@ -96,29 +99,18 @@
         transform: translate(0, 0) scale(1);
       }
 
-      25% {
-        transform: translate(30px, -30px) scale(1.05);
-      }
-
       50% {
         transform: translate(-20px, 20px) scale(0.95);
       }
-
-      75% {
-        transform: translate(-30px, -20px) scale(1.02);
-      }
     }
 
-    /* Grid Pattern */
     .grid-pattern {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-image:
-        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
       background-size: 60px 60px;
       z-index: 1;
       pointer-events: none;
@@ -129,7 +121,7 @@
       z-index: 10;
     }
 
-    /* Tab Styles */
+    /* Components */
     .tab-container {
       display: flex;
       gap: 4px;
@@ -145,23 +137,11 @@
       border-radius: 8px;
       font-weight: 600;
       font-size: 14px;
-      letter-spacing: 0.5px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s;
       background: transparent;
       border: none;
       color: var(--muted);
       cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .tab-btn::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, var(--accent), #0ea5e9);
-      opacity: 0;
-      transition: opacity 0.3s;
     }
 
     .tab-btn.active {
@@ -175,12 +155,6 @@
       background: rgba(56, 189, 248, 0.1);
     }
 
-    .tab-btn span {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Card Styles */
     .glass-card {
       background: var(--card);
       backdrop-filter: blur(20px);
@@ -189,12 +163,6 @@
       transition: all 0.3s;
     }
 
-    .glass-card:hover {
-      border-color: rgba(56, 189, 248, 0.3);
-      box-shadow: 0 8px 40px rgba(56, 189, 248, 0.1);
-    }
-
-    /* Input Styles */
     .input-field {
       width: 100%;
       padding: 14px 16px;
@@ -204,8 +172,8 @@
       color: var(--fg);
       font-family: 'JetBrains Mono', monospace;
       font-size: 14px;
-      transition: all 0.3s;
       outline: none;
+      transition: all 0.3s;
     }
 
     .input-field:focus {
@@ -213,11 +181,6 @@
       box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
-    .input-field::placeholder {
-      color: var(--muted);
-    }
-
-    /* Select Styles */
     .select-field {
       appearance: none;
       width: 100%;
@@ -226,24 +189,19 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       color: var(--fg);
-      font-family: 'Space Grotesk', sans-serif;
       font-size: 14px;
       cursor: pointer;
-      transition: all 0.3s;
       outline: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
     }
 
     .select-field:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
-    /* Color Picker */
     .color-picker-wrapper {
-      position: relative;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -255,8 +213,7 @@
       border: 2px solid var(--border);
       border-radius: 10px;
       cursor: pointer;
-      overflow: hidden;
-      transition: all 0.3s;
+      padding: 0;
     }
 
     .color-picker::-webkit-color-swatch-wrapper {
@@ -268,12 +225,6 @@
       border-radius: 8px;
     }
 
-    .color-picker:hover {
-      border-color: var(--accent);
-      transform: scale(1.05);
-    }
-
-    /* Button Styles */
     .btn-primary {
       display: inline-flex;
       align-items: center;
@@ -284,37 +235,15 @@
       color: var(--bg);
       font-weight: 600;
       font-size: 14px;
-      letter-spacing: 0.5px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-primary::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      transition: left 0.5s;
+      transition: all 0.3s;
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 30px var(--accent-glow);
-    }
-
-    .btn-primary:hover::before {
-      left: 100%;
-    }
-
-    .btn-primary:active {
-      transform: translateY(0);
     }
 
     .btn-secondary {
@@ -327,7 +256,6 @@
       color: var(--fg);
       font-weight: 600;
       font-size: 14px;
-      letter-spacing: 0.5px;
       border: 1px solid var(--border);
       border-radius: 10px;
       cursor: pointer;
@@ -339,7 +267,6 @@
       background: rgba(56, 189, 248, 0.1);
     }
 
-    /* Preview Area */
     .preview-area {
       background: #ffffff;
       border-radius: 12px;
@@ -348,17 +275,9 @@
       align-items: center;
       justify-content: center;
       min-height: 200px;
-      transition: all 0.3s;
+      transition: background 0.3s;
     }
 
-    .preview-area svg,
-    .preview-area canvas,
-    .preview-area img {
-      max-width: 100%;
-      height: auto;
-    }
-
-    /* Range Slider */
     .range-slider {
       width: 100%;
       height: 6px;
@@ -366,7 +285,6 @@
       border-radius: 3px;
       outline: none;
       -webkit-appearance: none;
-      cursor: pointer;
     }
 
     .range-slider::-webkit-slider-thumb {
@@ -377,14 +295,8 @@
       border-radius: 50%;
       cursor: pointer;
       box-shadow: 0 2px 10px var(--accent-glow);
-      transition: transform 0.2s;
     }
 
-    .range-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-
-    /* Label */
     .field-label {
       display: block;
       font-size: 12px;
@@ -395,7 +307,6 @@
       margin-bottom: 8px;
     }
 
-    /* Toast */
     .toast {
       position: fixed;
       bottom: 24px;
@@ -407,7 +318,7 @@
       border-radius: 10px;
       transform: translateY(100px);
       opacity: 0;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s;
       z-index: 1000;
       display: flex;
       align-items: center;
@@ -419,172 +330,73 @@
       opacity: 1;
     }
 
-    /* History Panel */
-    .history-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: var(--bg);
-      border-radius: 10px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.3s;
+    .tab-panel {
+      display: block;
     }
 
-    .history-item:hover {
-      border-color: var(--border);
-      background: rgba(56, 189, 248, 0.05);
+    .tab-panel.hidden {
+      display: none;
     }
 
-    .history-thumb {
-      width: 48px;
-      height: 48px;
-      background: white;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* --- Decoder Layout --- */
+    .scanner-box {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
       overflow: hidden;
-    }
-
-    .history-thumb svg {
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    /* Animations */
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .animate-in {
-      animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    }
-
-    .delay-1 {
-      animation-delay: 0.1s;
-      opacity: 0;
-    }
-
-    .delay-2 {
-      animation-delay: 0.2s;
-      opacity: 0;
-    }
-
-    .delay-3 {
-      animation-delay: 0.3s;
-      opacity: 0;
-    }
-
-    .delay-4 {
-      animation-delay: 0.4s;
-      opacity: 0;
-    }
-
-    /* Reduced Motion */
-    @media (prefers-reduced-motion: reduce) {
-
-      *,
-      *::before,
-      *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .tab-btn {
-        padding: 10px 16px;
-        font-size: 13px;
-      }
-
-      .preview-area {
-        padding: 20px;
-        min-height: 150px;
-      }
-    }
-
-    /* Checkbox custom */
-    .checkbox-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-    }
-
-    .checkbox-custom {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--border);
-      border-radius: 4px;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      border: 1px solid var(--border);
     }
 
-    .checkbox-wrapper input:checked+.checkbox-custom {
-      background: var(--accent);
-      border-color: var(--accent);
+    .scanner-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    .checkbox-wrapper input:checked+.checkbox-custom svg {
-      opacity: 1;
-    }
-
-    .checkbox-custom svg {
-      width: 12px;
-      height: 12px;
-      stroke: var(--bg);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    /* Logo Upload */
-    .logo-upload {
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      padding: 24px;
+    .upload-placeholder {
       text-align: center;
       cursor: pointer;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 32px;
       transition: all 0.3s;
     }
 
-    .logo-upload:hover {
+    .drop-zone:hover,
+    .drop-zone.dragover {
       border-color: var(--accent);
       background: rgba(56, 189, 248, 0.05);
     }
 
-    .logo-upload.has-logo {
-      border-style: solid;
-      border-color: var(--success);
+    .result-panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
     }
 
-    /* Stats */
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--accent), #0ea5e9);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .result-panel.success {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.1);
     }
   </style>
 </head>
 
 <body>
-  <!-- Background -->
   <div class="bg-mesh">
     <div class="mesh-gradient mesh-1"></div>
     <div class="mesh-gradient mesh-2"></div>
@@ -592,25 +404,20 @@
   </div>
   <div class="grid-pattern"></div>
 
-  <!-- Toast -->
   <div class="toast" id="toast">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-      stroke-linecap="round" stroke-linejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
       <polyline points="20 6 9 17 4 12"></polyline>
     </svg>
-    <span id="toast-message">已复制到剪贴板</span>
+    <span id="toast-message">操作成功</span>
   </div>
 
-  <!-- Main Content -->
   <div class="content-wrapper">
-    <!-- Header -->
     <header class="py-6 px-4 md:px-8 border-b border-[rgba(56,189,248,0.1)]">
       <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3 animate-in">
+        <div class="flex items-center gap-3">
           <div
             class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent)] to-[#0ea5e9] flex items-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0f1a" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0f1a" stroke-width="2.5">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="7" y1="7" x2="7" y2="17"></line>
               <line x1="12" y1="7" x2="12" y2="17"></line>
@@ -618,41 +425,35 @@
             </svg>
           </div>
           <div>
-            <p class="text-xs text-[var(--muted)]">条形码与二维码生成器</p>
+            <p class="text-xs text-[var(--muted)]">条形码与二维码工具</p>
           </div>
         </div>
-
-        <div class="hidden md:flex items-center gap-6 animate-in delay-1">
+        <div class="hidden md:flex items-center gap-6">
           <div class="text-center">
-            <div class="stat-value" id="total-generated">0</div>
-            <div class="text-xs text-[var(--muted)] uppercase tracking-wider">已生成</div>
+            <div
+              class="text-2xl font-bold bg-gradient-to-r from-[var(--accent)] to-[#0ea5e9] bg-clip-text text-transparent"
+              id="total-generated">0</div>
+            <div class="text-xs text-[var(--muted)] uppercase tracking-wider">已处理</div>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- Main -->
     <main class="max-w-7xl mx-auto px-4 md:px-8 py-8">
-      <!-- Tabs -->
-      <div class="max-w-md mx-auto mb-8 animate-in delay-1">
+      <div class="max-w-xl mx-auto mb-8">
         <div class="tab-container">
-          <button class="tab-btn active" data-tab="barcode" onclick="switchTab('barcode')">
-            <span>条形码</span>
-          </button>
-          <button class="tab-btn" data-tab="qrcode" onclick="switchTab('qrcode')">
-            <span>二维码</span>
-          </button>
+          <button class="tab-btn active" data-tab="barcode" onclick="switchTab('barcode')"><span>生成条形码</span></button>
+          <button class="tab-btn" data-tab="qrcode" onclick="switchTab('qrcode')"><span>生成二维码</span></button>
+          <button class="tab-btn" data-tab="decoder" onclick="switchTab('decoder')"><span>解码识别</span></button>
         </div>
       </div>
 
       <!-- Barcode Panel -->
       <div id="barcode-panel" class="tab-panel">
         <div class="grid lg:grid-cols-2 gap-8">
-          <!-- Settings -->
-          <div class="glass-card p-6 md:p-8 animate-in delay-2">
+          <div class="glass-card p-6 md:p-8">
             <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
                 <line x1="4" y1="21" x2="4" y2="14"></line>
                 <line x1="4" y1="10" x2="4" y2="3"></line>
                 <line x1="12" y1="21" x2="12" y2="12"></line>
@@ -662,14 +463,12 @@
               </svg>
               条形码设置
             </h2>
-
             <div class="space-y-5">
               <div>
                 <label class="field-label">内容</label>
                 <input type="text" class="input-field" id="barcode-content" placeholder="输入要编码的内容..."
-                  value="CODE-FORGE-2024">
+                  value="Google-2024">
               </div>
-
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="field-label">格式</label>
@@ -680,7 +479,6 @@
                     <option value="EAN8">EAN-8</option>
                     <option value="UPC">UPC-A</option>
                     <option value="ITF14">ITF-14</option>
-                    <option value="pharmacode">Pharmacode</option>
                   </select>
                 </div>
                 <div>
@@ -689,16 +487,13 @@
                     <option value="1">窄 (1px)</option>
                     <option value="2" selected>标准 (2px)</option>
                     <option value="3">宽 (3px)</option>
-                    <option value="4">超宽 (4px)</option>
                   </select>
                 </div>
               </div>
-
               <div>
                 <label class="field-label">高度: <span id="barcode-height-value">100</span>px</label>
                 <input type="range" class="range-slider" id="barcode-height" min="40" max="200" value="100">
               </div>
-
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="field-label">线条颜色</label>
@@ -717,35 +512,9 @@
                   </div>
                 </div>
               </div>
-
-              <div class="flex items-center gap-6">
-                <label class="checkbox-wrapper">
-                  <input type="checkbox" class="hidden" id="barcode-show-text" checked>
-                  <div class="checkbox-custom">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                      stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span class="text-sm">显示文字</span>
-                </label>
-
-                <label class="checkbox-wrapper">
-                  <input type="checkbox" class="hidden" id="barcode-flat">
-                  <div class="checkbox-custom">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                      stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span class="text-sm">扁平模式</span>
-                </label>
-              </div>
-
-              <div class="pt-4 flex gap-3">
-                <button class="btn-primary flex-1" onclick="generateBarcode()">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
+              <div class="pt-4">
+                <button class="btn-primary w-full" onclick="generateBarcode()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
                   生成条形码
@@ -754,47 +523,15 @@
             </div>
           </div>
 
-          <!-- Preview -->
-          <div class="glass-card p-6 md:p-8 animate-in delay-3">
-            <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              预览
-            </h2>
-
+          <div class="glass-card p-6 md:p-8">
+            <h2 class="text-lg font-semibold mb-6">预览与导出</h2>
             <div class="preview-area mb-6" id="barcode-preview">
               <svg id="barcode-svg"></svg>
             </div>
-
             <div class="flex gap-3">
-              <button class="btn-secondary flex-1" onclick="copyToClipboard('barcode')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                复制
-              </button>
-              <button class="btn-secondary flex-1" onclick="downloadImage('barcode', 'png')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                PNG
-              </button>
-              <button class="btn-secondary flex-1" onclick="downloadImage('barcode', 'svg')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                SVG
-              </button>
+              <button class="btn-secondary flex-1" onclick="copyImageToClipboard('barcode')">复制图片</button>
+              <button class="btn-secondary flex-1" onclick="downloadImage('barcode', 'png')">下载PNG</button>
+              <button class="btn-secondary flex-1" onclick="downloadImage('barcode', 'svg')">下载SVG</button>
             </div>
           </div>
         </div>
@@ -803,11 +540,9 @@
       <!-- QR Code Panel -->
       <div id="qrcode-panel" class="tab-panel hidden">
         <div class="grid lg:grid-cols-2 gap-8">
-          <!-- Settings -->
-          <div class="glass-card p-6 md:p-8 animate-in delay-2">
+          <div class="glass-card p-6 md:p-8">
             <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
                 <rect x="3" y="3" width="7" height="7"></rect>
                 <rect x="14" y="3" width="7" height="7"></rect>
                 <rect x="14" y="14" width="7" height="7"></rect>
@@ -815,14 +550,12 @@
               </svg>
               二维码设置
             </h2>
-
             <div class="space-y-5">
               <div>
                 <label class="field-label">内容</label>
                 <textarea class="input-field resize-none" id="qrcode-content" rows="3"
-                  placeholder="输入URL、文本或任意内容...">https://codeforge.dev</textarea>
+                  placeholder="输入URL、文本或任意内容...">https://www.google.com/</textarea>
               </div>
-
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="field-label">尺寸: <span id="qrcode-size-value">256</span>px</label>
@@ -831,14 +564,13 @@
                 <div>
                   <label class="field-label">容错级别</label>
                   <select class="select-field" id="qrcode-level">
-                    <option value="L">L - 7% 恢复</option>
-                    <option value="M" selected>M - 15% 恢复</option>
-                    <option value="Q">Q - 25% 恢复</option>
-                    <option value="H">H - 30% 恢复</option>
+                    <option value="L">L - 7%</option>
+                    <option value="M" selected>M - 15%</option>
+                    <option value="Q">Q - 25%</option>
+                    <option value="H">H - 30%</option>
                   </select>
                 </div>
               </div>
-
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="field-label">前景色</label>
@@ -857,7 +589,6 @@
                   </div>
                 </div>
               </div>
-
               <div>
                 <label class="field-label">样式</label>
                 <select class="select-field" id="qrcode-style">
@@ -866,617 +597,597 @@
                   <option value="dots">圆点</option>
                 </select>
               </div>
-
-              <div>
-                <label class="field-label">Logo (可选)</label>
-                <div class="logo-upload" id="logo-upload" onclick="document.getElementById('logo-input').click()">
-                  <input type="file" id="logo-input" class="hidden" accept="image/*" onchange="handleLogoUpload(event)">
-                  <div id="logo-preview-area">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"
-                      stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                      <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                    <p class="text-sm text-[var(--muted)]">点击上传Logo图片</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="field-label">Logo大小: <span id="logo-size-value">20</span>%</label>
-                  <input type="range" class="range-slider" id="logo-size" min="10" max="35" value="20">
-                </div>
-                <div>
-                  <label class="field-label">边距: <span id="qrcode-margin-value">4</span> 单位</label>
-                  <input type="range" class="range-slider" id="qrcode-margin" min="0" max="10" value="4">
-                </div>
-              </div>
-
-              <div class="pt-4 flex gap-3">
-                <button class="btn-primary flex-1" onclick="generateQRCode()">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                  生成二维码
-                </button>
+              <div class="pt-4">
+                <button class="btn-primary w-full" onclick="generateQRCode()">生成二维码</button>
               </div>
             </div>
           </div>
 
-          <!-- Preview -->
-          <div class="glass-card p-6 md:p-8 animate-in delay-3">
-            <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              预览
-            </h2>
-
+          <div class="glass-card p-6 md:p-8">
+            <h2 class="text-lg font-semibold mb-6">预览与导出</h2>
             <div class="preview-area mb-6" id="qrcode-preview">
               <canvas id="qrcode-canvas"></canvas>
             </div>
-
             <div class="flex gap-3">
-              <button class="btn-secondary flex-1" onclick="copyToClipboard('qrcode')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                复制
-              </button>
-              <button class="btn-secondary flex-1" onclick="downloadImage('qrcode', 'png')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                PNG
-              </button>
-              <button class="btn-secondary flex-1" onclick="downloadImage('qrcode', 'svg')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                SVG
-              </button>
+              <button class="btn-secondary flex-1" onclick="copyImageToClipboard('qrcode')">复制</button>
+              <button class="btn-secondary flex-1" onclick="downloadImage('qrcode', 'png')">下载</button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- History Section -->
-      <div class="mt-12 animate-in delay-4">
+      <!-- Decoder Panel -->
+      <div id="decoder-panel" class="tab-panel hidden">
+        <div class="grid lg:grid-cols-2 gap-8">
+          <!-- Left: Scanner/Upload Area -->
+          <div class="glass-card p-6 md:p-8">
+            <div class="flex gap-3 mb-6">
+              <button id="mode-upload-btn"
+                class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all text-[var(--accent)] bg-[var(--bg)] border border-[var(--border)]"
+                onclick="setDecoderMode('upload')">上传图片</button>
+              <button id="mode-camera-btn"
+                class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all text-[var(--muted)] hover:bg-[var(--bg)]"
+                onclick="setDecoderMode('camera')">摄像头</button>
+            </div>
+
+            <div class="scanner-box mb-4">
+              <video id="scanner-video" class="hidden" playsinline></video>
+
+              <div id="upload-zone" class="scanner-box-inner">
+                <div id="upload-placeholder"
+                  class="upload-placeholder h-full flex flex-col items-center justify-center">
+                  <div class="drop-zone w-full h-full flex flex-col items-center justify-center"
+                    onclick="triggerFileInput()">
+                    <input type="file" id="decoder-file-input" class="hidden" accept="image/*"
+                      onchange="handleDecoderFile(event)">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+                      stroke-width="1.5" class="mx-auto mb-4">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="text-sm text-[var(--muted)]">点击或拖拽图片到此处</p>
+                  </div>
+                </div>
+                <!-- Image Preview Area -->
+                <div id="image-preview-container"
+                  class="hidden absolute inset-0 bg-black flex items-center justify-center p-2">
+                  <img id="uploaded-image" class="max-w-full max-h-full object-contain rounded" alt="Preview">
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div id="upload-actions">
+              <!-- File Info Bar -->
+              <div id="file-info-bar"
+                class="hidden flex items-center justify-between mb-3 bg-[var(--bg)] p-3 rounded-lg border border-[var(--border)]">
+                <div class="flex items-center gap-2 overflow-hidden">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                  </svg>
+                  <span id="file-name-display" class="text-xs text-[var(--fg)] truncate"></span>
+                </div>
+                <button onclick="triggerFileInput()"
+                  class="text-xs text-[var(--accent)] hover:underline ml-2 flex-shrink-0">重新选择</button>
+              </div>
+
+              <!-- Main Action -->
+              <button class="btn-primary w-full" onclick="decodeFromUpload()">开始识别</button>
+            </div>
+
+            <div id="camera-actions" class="hidden">
+              <button id="start-camera-btn" class="btn-primary w-full" onclick="startCamera()">开启摄像头</button>
+              <button id="stop-camera-btn" class="btn-secondary w-full hidden mt-2" onclick="stopCamera()">停止扫描</button>
+            </div>
+          </div>
+
+          <!-- Right: Result Panel -->
+          <div class="glass-card p-6 md:p-8 flex flex-col justify-between">
+            <div>
+              <h2 class="text-lg font-semibold mb-6">识别结果</h2>
+              <div id="decode-result" class="result-panel mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-mono px-2 py-1 bg-[var(--bg)] rounded" id="decode-type">等待识别</span>
+                  <span class="text-xs text-[var(--muted)]" id="decode-time"></span>
+                </div>
+                <textarea id="decode-text" class="input-field resize-none mb-4" rows="6" readonly
+                  placeholder="结果将显示在这里..."></textarea>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex gap-3 mb-4">
+                <button class="btn-secondary flex-1" onclick="copyDecodedText()">复制文本</button>
+                <button class="btn-secondary flex-1" onclick="downloadDecodedText()">下载TXT</button>
+              </div>
+              <div class="border-t border-[var(--border)] pt-4">
+                <p class="text-xs text-[var(--muted)] mb-3">使用此内容重新生成：</p>
+                <div class="flex gap-3">
+                  <button class="btn-secondary flex-1" onclick="regenerateFromResult('barcode')">生成条形码</button>
+                  <button class="btn-secondary flex-1" onclick="regenerateFromResult('qrcode')">生成二维码</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="mt-12">
         <div class="glass-card p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="font-semibold flex items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
-              最近生成
+              最近记录
             </h3>
             <button class="text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
               onclick="clearHistory()">清空历史</button>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3" id="history-list">
-            <div class="text-center text-[var(--muted)] text-sm py-8 col-span-full">
-              暂无历史记录
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Format Info -->
-      <div class="mt-8 animate-in delay-4">
-        <div class="glass-card p-6">
-          <h3 class="font-semibold mb-4 flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            条形码格式说明
-          </h3>
-          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-            <div class="p-3 bg-[var(--bg)] rounded-lg">
-              <span class="font-mono text-[var(--accent)]">CODE128</span>
-              <p class="text-[var(--muted)] mt-1">通用格式，支持全ASCII字符，广泛用于物流、仓储</p>
-            </div>
-            <div class="p-3 bg-[var(--bg)] rounded-lg">
-              <span class="font-mono text-[var(--accent)]">EAN-13</span>
-              <p class="text-[var(--muted)] mt-1">国际商品条码，需13位数字，用于零售商品标识</p>
-            </div>
-            <div class="p-3 bg-[var(--bg)] rounded-lg">
-              <span class="font-mono text-[var(--accent)]">UPC-A</span>
-              <p class="text-[var(--muted)] mt-1">北美商品条码，需12位数字，美国加拿大常用</p>
-            </div>
-            <div class="p-3 bg-[var(--bg)] rounded-lg">
-              <span class="font-mono text-[var(--accent)]">CODE39</span>
-              <p class="text-[var(--muted)] mt-1">工业标准，支持数字和大写字母，常用于汽车国防</p>
-            </div>
-            <div class="p-3 bg-[var(--bg)] rounded-lg">
-              <span class="font-mono text-[var(--accent)]">ITF-14</span>
-              <p class="text-[var(--muted)] mt-1">物流包装码，需14位数字，用于外箱标识</p>
-            </div>
-            <div class="p-3 bg-[var(--bg)] rounded-lg">
-              <span class="font-mono text-[var(--accent)]">Pharmacode</span>
-              <p class="text-[var(--muted)] mt-1">药品包装码，数字范围3-131070，医药行业专用</p>
-            </div>
+            <div class="text-center text-[var(--muted)] text-sm py-8 col-span-full">暂无历史记录</div>
           </div>
         </div>
       </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="py-8 px-4 border-t border-[rgba(56,189,248,0.1)] mt-12">
-      <div class="max-w-7xl mx-auto text-center">
-        <p class="text-sm text-[var(--muted)]">
-          专业条形码与二维码生成工具
-        </p>
-      </div>
-    </footer>
   </div>
 
   <script>
-    // State
+    // --- State & Config ---
     let history = [];
     let totalGenerated = 0;
-    let logoImage = null;
-
-    // DOM Elements - Initialize after DOM is ready
+    let codeReader = null;
+    let decoderMode = 'upload';
+    let selectedFile = null;
     let barcodeSvg, qrcodeCanvas, qrcodeCtx;
 
-    // Initialize
+    // --- Init ---
     document.addEventListener('DOMContentLoaded', () => {
-      // Initialize DOM elements
       barcodeSvg = document.getElementById('barcode-svg');
       qrcodeCanvas = document.getElementById('qrcode-canvas');
       qrcodeCtx = qrcodeCanvas.getContext('2d');
 
-      // Setup event listeners
       setupEventListeners();
+      initZXing();
+      loadHistory();
 
-      // Generate initial codes
-      generateBarcode();
-      generateQRCode();
-
-      // Load history from localStorage
-      const savedHistory = localStorage.getItem('codeforge-history');
-      if (savedHistory) {
-        history = JSON.parse(savedHistory);
-        renderHistory();
-      }
-
-      const savedCount = localStorage.getItem('codeforge-count');
-      if (savedCount) {
-        totalGenerated = parseInt(savedCount);
-        document.getElementById('total-generated').textContent = totalGenerated;
-      }
+      // 初始化生成预览
+      previewBarcode();
+      previewQRCode();
     });
 
-    function setupEventListeners() {
-      // Barcode color sync
-      document.getElementById('barcode-line-color').addEventListener('input', (e) => {
-        document.getElementById('barcode-line-color-text').value = e.target.value;
-      });
-      document.getElementById('barcode-line-color-text').addEventListener('input', (e) => {
-        document.getElementById('barcode-line-color').value = e.target.value;
-      });
-      document.getElementById('barcode-bg-color').addEventListener('input', (e) => {
-        document.getElementById('barcode-bg-color-text').value = e.target.value;
-      });
-      document.getElementById('barcode-bg-color-text').addEventListener('input', (e) => {
-        document.getElementById('barcode-bg-color').value = e.target.value;
-      });
-
-      // QR Code color sync
-      document.getElementById('qrcode-fg-color').addEventListener('input', (e) => {
-        document.getElementById('qrcode-fg-color-text').value = e.target.value;
-      });
-      document.getElementById('qrcode-fg-color-text').addEventListener('input', (e) => {
-        document.getElementById('qrcode-fg-color').value = e.target.value;
-      });
-      document.getElementById('qrcode-bg-color').addEventListener('input', (e) => {
-        document.getElementById('qrcode-bg-color-text').value = e.target.value;
-      });
-      document.getElementById('qrcode-bg-color-text').addEventListener('input', (e) => {
-        document.getElementById('qrcode-bg-color').value = e.target.value;
-      });
-
-      // Range value display
-      document.getElementById('barcode-height').addEventListener('input', (e) => {
-        document.getElementById('barcode-height-value').textContent = e.target.value;
-      });
-      document.getElementById('qrcode-size').addEventListener('input', (e) => {
-        document.getElementById('qrcode-size-value').textContent = e.target.value;
-      });
-      document.getElementById('logo-size').addEventListener('input', (e) => {
-        document.getElementById('logo-size-value').textContent = e.target.value;
-      });
-      document.getElementById('qrcode-margin').addEventListener('input', (e) => {
-        document.getElementById('qrcode-margin-value').textContent = e.target.value;
-      });
-
-      // Auto-generate on input change
-      document.getElementById('barcode-content').addEventListener('input', debounce(generateBarcode, 300));
-      document.getElementById('barcode-format').addEventListener('change', generateBarcode);
-      document.getElementById('qrcode-content').addEventListener('input', debounce(generateQRCode, 300));
-      document.getElementById('qrcode-level').addEventListener('change', generateQRCode);
-      document.getElementById('qrcode-style').addEventListener('change', generateQRCode);
+    function initZXing() {
+      try {
+        if (window.ZXingBrowser) {
+          codeReader = new ZXingBrowser.BrowserQRCodeReader();
+        }
+      } catch (e) {
+        console.error("ZXing init failed", e);
+      }
     }
 
-    function debounce(func, wait) {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+    function setupEventListeners() {
+      // Color Pickers
+      const syncColor = (pickerId, textId) => {
+        document.getElementById(pickerId).addEventListener('input', (e) => document.getElementById(textId).value = e.target.value);
+        document.getElementById(textId).addEventListener('input', (e) => document.getElementById(pickerId).value = e.target.value);
       };
+      syncColor('barcode-line-color', 'barcode-line-color-text');
+      syncColor('barcode-bg-color', 'barcode-bg-color-text');
+      syncColor('qrcode-fg-color', 'qrcode-fg-color-text');
+      syncColor('qrcode-bg-color', 'qrcode-bg-color-text');
+
+      // Range Sliders
+      const syncRange = (id, displayId) => {
+        document.getElementById(id).addEventListener('input', (e) => document.getElementById(displayId).textContent = e.target.value);
+      };
+      syncRange('barcode-height', 'barcode-height-value');
+      syncRange('qrcode-size', 'qrcode-size-value');
+
+      // Real-time Preview Listeners
+      document.getElementById('barcode-content').addEventListener('input', debounce(previewBarcode, 300));
+      document.getElementById('barcode-format').addEventListener('change', previewBarcode);
+      document.getElementById('barcode-width').addEventListener('change', previewBarcode);
+      document.getElementById('barcode-height').addEventListener('input', previewBarcode);
+      document.getElementById('barcode-line-color').addEventListener('input', previewBarcode);
+      document.getElementById('barcode-bg-color').addEventListener('input', previewBarcode);
+
+      document.getElementById('qrcode-content').addEventListener('input', debounce(previewQRCode, 300));
+      document.getElementById('qrcode-size').addEventListener('input', previewQRCode);
+      document.getElementById('qrcode-level').addEventListener('change', previewQRCode);
+      document.getElementById('qrcode-fg-color').addEventListener('input', previewQRCode);
+      document.getElementById('qrcode-bg-color').addEventListener('input', previewQRCode);
+      document.getElementById('qrcode-style').addEventListener('change', previewQRCode);
+
+      // Drag & Drop
+      const dropZone = document.querySelector('.drop-zone');
+      if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+          dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        ['dragenter', 'dragover'].forEach(eventName => {
+          dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+          dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+        dropZone.addEventListener('drop', (e) => {
+          const files = e.dataTransfer.files;
+          if (files.length > 0) processUploadedFile(files[0]);
+        }, false);
+      }
+    }
+
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+    function loadHistory() {
+      const saved = localStorage.getItem('codeforge-history');
+      if (saved) { history = JSON.parse(saved); renderHistory(); }
+      const count = localStorage.getItem('codeforge-count');
+      if (count) { totalGenerated = parseInt(count); document.getElementById('total-generated').textContent = totalGenerated; }
+    }
+
+    function debounce(fn, ms) {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
     }
 
     function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      stopCamera();
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-
-      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       document.getElementById(`${tab}-panel`).classList.remove('hidden');
     }
 
-    function generateBarcode() {
-      const content = document.getElementById('barcode-content').value;
-      if (!content) return;
+    // --- Generation Logic ---
 
-      const format = document.getElementById('barcode-format').value;
-      const width = parseInt(document.getElementById('barcode-width').value);
-      const height = parseInt(document.getElementById('barcode-height').value);
-      const lineColor = document.getElementById('barcode-line-color').value;
-      const background = document.getElementById('barcode-bg-color').value;
-      const displayValue = document.getElementById('barcode-show-text').checked;
-      const flat = document.getElementById('barcode-flat').checked;
-
+    function previewBarcode() {
+      const c = document.getElementById('barcode-content').value;
+      if (!c) return;
       try {
-        JsBarcode(barcodeSvg, content, {
-          format: format,
-          width: width,
-          height: height,
-          lineColor: lineColor,
-          background: background,
-          displayValue: displayValue,
-          flat: flat,
-          margin: 10,
-          font: 'JetBrains Mono',
-          fontSize: 14,
-          fontOptions: '600',
-          valid: function (valid) {
-            if (!valid) {
-              showToast('内容格式不符合所选条形码格式要求', 'warning');
-            }
-          }
+        JsBarcode(barcodeSvg, c, {
+          format: document.getElementById('barcode-format').value,
+          width: parseInt(document.getElementById('barcode-width').value),
+          height: parseInt(document.getElementById('barcode-height').value),
+          lineColor: document.getElementById('barcode-line-color').value,
+          background: document.getElementById('barcode-bg-color').value,
+          displayValue: true,
+          margin: 10
         });
+        document.getElementById('barcode-preview').style.background = document.getElementById('barcode-bg-color').value;
+      } catch (e) { console.error("Preview Error", e); }
+    }
 
-        document.getElementById('barcode-preview').style.background = background;
-        addToHistory('barcode', content, lineColor, background);
-      } catch (e) {
-        showToast('生成失败: ' + e.message, 'error');
+    function generateBarcode() {
+      previewBarcode();
+      const c = document.getElementById('barcode-content').value;
+      if (c) {
+        addToHistory('barcode', c, document.getElementById('barcode-line-color').value, document.getElementById('barcode-bg-color').value);
+        showToast('条形码已生成');
       }
     }
 
-    function generateQRCode() {
-      const content = document.getElementById('qrcode-content').value;
-      if (!content) return;
-
+    function previewQRCode() {
+      const c = document.getElementById('qrcode-content').value;
+      if (!c) return;
       const size = parseInt(document.getElementById('qrcode-size').value);
-      const level = document.getElementById('qrcode-level').value;
-      const fgColor = document.getElementById('qrcode-fg-color').value;
-      const bgColor = document.getElementById('qrcode-bg-color').value;
+      const fg = document.getElementById('qrcode-fg-color').value;
+      const bg = document.getElementById('qrcode-bg-color').value;
       const style = document.getElementById('qrcode-style').value;
-      const margin = parseInt(document.getElementById('qrcode-margin').value);
 
-      const typeNumber = 0; // Auto
-      const errorCorrectionLevel = level;
-
-      const qr = qrcode(typeNumber, errorCorrectionLevel);
-      qr.addData(content);
+      const qr = qrcode(0, document.getElementById('qrcode-level').value);
+      qr.addData(c);
       qr.make();
 
-      const moduleCount = qr.getModuleCount();
-      const cellSize = Math.floor((size - margin * 2) / moduleCount);
-      const actualSize = cellSize * moduleCount + margin * 2;
+      const mc = qr.getModuleCount();
+      const cs = Math.floor(size / mc);
+      const actual = cs * mc;
+      qrcodeCanvas.width = actual;
+      qrcodeCanvas.height = actual;
 
-      qrcodeCanvas.width = actualSize;
-      qrcodeCanvas.height = actualSize;
+      qrcodeCtx.fillStyle = bg;
+      qrcodeCtx.fillRect(0, 0, actual, actual);
 
-      // Draw background
-      qrcodeCtx.fillStyle = bgColor;
-      qrcodeCtx.fillRect(0, 0, actualSize, actualSize);
-
-      // Draw QR code
-      for (let row = 0; row < moduleCount; row++) {
-        for (let col = 0; col < moduleCount; col++) {
-          if (qr.isDark(row, col)) {
-            const x = margin + col * cellSize;
-            const y = margin + row * cellSize;
-
+      for (let r = 0; r < mc; r++) {
+        for (let col = 0; col < mc; col++) {
+          if (qr.isDark(r, col)) {
+            qrcodeCtx.fillStyle = fg;
             if (style === 'dots') {
-              qrcodeCtx.fillStyle = fgColor;
               qrcodeCtx.beginPath();
-              qrcodeCtx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+              qrcodeCtx.arc(col * cs + cs / 2, r * cs + cs / 2, cs / 2 - 1, 0, Math.PI * 2);
               qrcodeCtx.fill();
             } else if (style === 'rounded') {
-              qrcodeCtx.fillStyle = fgColor;
-              roundRect(qrcodeCtx, x + 1, y + 1, cellSize - 2, cellSize - 2, 3);
+              qrcodeCtx.beginPath();
+              const x = col * cs + 1, y = r * cs + 1, w = cs - 2, h = cs - 2, radius = 3;
+              qrcodeCtx.moveTo(x + radius, y);
+              qrcodeCtx.arcTo(x + w, y, x + w, y + h, radius);
+              qrcodeCtx.arcTo(x + w, y + h, x, y + h, radius);
+              qrcodeCtx.arcTo(x, y + h, x, y, radius);
+              qrcodeCtx.arcTo(x, y, x + w, y, radius);
+              qrcodeCtx.closePath();
+              qrcodeCtx.fill();
             } else {
-              qrcodeCtx.fillStyle = fgColor;
-              qrcodeCtx.fillRect(x, y, cellSize, cellSize);
+              qrcodeCtx.fillRect(col * cs, r * cs, cs, cs);
             }
           }
         }
       }
-
-      // Draw logo if exists
-      if (logoImage) {
-        const logoSizePercent = parseInt(document.getElementById('logo-size').value) / 100;
-        const logoSizePx = actualSize * logoSizePercent;
-        const logoX = (actualSize - logoSizePx) / 2;
-        const logoY = (actualSize - logoSizePx) / 2;
-
-        // White background for logo
-        const padding = 4;
-        qrcodeCtx.fillStyle = '#ffffff';
-        roundRect(qrcodeCtx, logoX - padding, logoY - padding, logoSizePx + padding * 2, logoSizePx + padding * 2, 8, true);
-
-        qrcodeCtx.drawImage(logoImage, logoX, logoY, logoSizePx, logoSizePx);
-      }
-
-      document.getElementById('qrcode-preview').style.background = bgColor;
-      addToHistory('qrcode', content, fgColor, bgColor);
+      document.getElementById('qrcode-preview').style.background = bg;
     }
 
-    function roundRect(ctx, x, y, width, height, radius, fillOnly = false) {
-      const r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + width, y, x + width, y + height, r);
-      ctx.arcTo(x + width, y + height, x, y + height, r);
-      ctx.arcTo(x, y + height, x, y, r);
-      ctx.arcTo(x, y, x + width, y, r);
-      ctx.closePath();
-      if (!fillOnly) {
-        ctx.fill();
+    function generateQRCode() {
+      previewQRCode();
+      const c = document.getElementById('qrcode-content').value;
+      if (c) {
+        addToHistory('qrcode', c, document.getElementById('qrcode-fg-color').value, document.getElementById('qrcode-bg-color').value);
+        showToast('二维码已生成');
       }
     }
 
-    function handleLogoUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    // --- Decoding Logic ---
 
+    function setDecoderMode(mode) {
+      stopCamera();
+      decoderMode = mode;
+
+      document.getElementById('mode-upload-btn').classList.toggle('text-[var(--accent)]', mode === 'upload');
+      document.getElementById('mode-upload-btn').classList.toggle('bg-[var(--bg)]', mode === 'upload');
+      document.getElementById('mode-upload-btn').classList.toggle('border', mode === 'upload');
+
+      document.getElementById('mode-camera-btn').classList.toggle('text-[var(--accent)]', mode === 'camera');
+      document.getElementById('mode-camera-btn').classList.toggle('bg-[var(--bg)]', mode === 'camera');
+      document.getElementById('mode-camera-btn').classList.toggle('border', mode === 'camera');
+
+      document.getElementById('upload-zone').classList.toggle('hidden', mode !== 'upload');
+      document.getElementById('scanner-video').classList.toggle('hidden', mode !== 'camera');
+      document.getElementById('upload-actions').classList.toggle('hidden', mode !== 'upload');
+      document.getElementById('camera-actions').classList.toggle('hidden', mode !== 'camera');
+    }
+
+    function triggerFileInput() {
+      document.getElementById('decoder-file-input').click();
+    }
+
+    function handleDecoderFile(e) {
+      if (e.target.files[0]) processUploadedFile(e.target.files[0]);
+    }
+
+    function processUploadedFile(file) {
+      selectedFile = file;
       const reader = new FileReader();
       reader.onload = (e) => {
-        logoImage = new Image();
-        logoImage.onload = () => {
-          document.getElementById('logo-upload').classList.add('has-logo');
-          document.getElementById('logo-preview-area').innerHTML = `
-            <img src="${e.target.result}" alt="Logo" class="max-w-full max-h-24 mx-auto rounded">
-            <p class="text-sm text-[var(--success)] mt-2">Logo已上传</p>
-          `;
-          generateQRCode();
-        };
-        logoImage.src = e.target.result;
+        document.getElementById('upload-placeholder').classList.add('hidden');
+        document.getElementById('image-preview-container').classList.remove('hidden');
+        document.getElementById('uploaded-image').src = e.target.result;
+
+        // 显示文件信息栏和重选按钮
+        document.getElementById('file-info-bar').classList.remove('hidden');
+        document.getElementById('file-name-display').textContent = file.name;
       };
       reader.readAsDataURL(file);
     }
 
-    function copyToClipboard(type) {
-      if (type === 'barcode') {
-        const svgData = new XMLSerializer().serializeToString(barcodeSvg);
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
+    function clearUploadedImage() {
+      selectedFile = null;
+      document.getElementById('upload-placeholder').classList.remove('hidden');
+      document.getElementById('image-preview-container').classList.add('hidden');
+      document.getElementById('decoder-file-input').value = '';
+      document.getElementById('file-info-bar').classList.add('hidden');
+    }
 
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.fillStyle = document.getElementById('barcode-bg-color').value;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
+    async function decodeFromUpload() {
+      if (!selectedFile) { showToast('请先选择图片', 'warning'); return; }
+      if (!codeReader) { showToast('解码引擎加载中...', 'warning'); return; }
 
-          canvas.toBlob((blob) => {
-            navigator.clipboard.write([
-              new ClipboardItem({ 'image/png': blob })
-            ]).then(() => {
-              showToast('条形码已复制到剪贴板');
-            });
-          });
-        };
-        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-      } else {
-        qrcodeCanvas.toBlob((blob) => {
-          navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]).then(() => {
-            showToast('二维码已复制到剪贴板');
-          });
+      showToast('识别中...', 'success');
+      const img = document.getElementById('uploaded-image');
+
+      try {
+        const result = await codeReader.decodeFromImageElement(img);
+        handleDecodeSuccess(result.getText(), '图片识别');
+      } catch (err) {
+        showToast('未能识别，请尝试清晰图片', 'error');
+        document.getElementById('decode-type').textContent = '识别失败';
+        document.getElementById('decode-result').classList.remove('success');
+      }
+    }
+
+    async function startCamera() {
+      if (!codeReader) { showToast('解码引擎加载失败', 'error'); return; }
+
+      const video = document.getElementById('scanner-video');
+      video.classList.remove('hidden');
+
+      document.getElementById('start-camera-btn').classList.add('hidden');
+      document.getElementById('stop-camera-btn').classList.remove('hidden');
+
+      try {
+        const devices = await codeReader.listVideoInputDevices();
+        const selectedDeviceId = devices.length > 0 ? devices[0].deviceId : null;
+        if (!selectedDeviceId) { showToast('未找到摄像头', 'error'); stopCamera(); return; }
+
+        await codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result) => {
+          if (result) handleDecodeSuccess(result.getText(), '摄像头扫描');
         });
+      } catch (err) {
+        showToast('无法访问摄像头', 'error');
+        stopCamera();
+      }
+    }
+
+    async function stopCamera() {
+      if (codeReader) codeReader.reset();
+      document.getElementById('start-camera-btn').classList.remove('hidden');
+      document.getElementById('stop-camera-btn').classList.add('hidden');
+    }
+
+    function handleDecodeSuccess(text, source) {
+      document.getElementById('decode-result').classList.add('success');
+      document.getElementById('decode-type').textContent = source + ' 成功';
+      document.getElementById('decode-text').value = text;
+      document.getElementById('decode-time').textContent = new Date().toLocaleTimeString();
+
+      incrementCount();
+      addToHistory('decode', text, '#38bdf8', '#ffffff');
+      showToast('识别成功！', 'success');
+    }
+
+    // --- Utils ---
+
+    function copyImageToClipboard(type) {
+      const process = (canvas) => {
+        canvas.toBlob((blob) => {
+          navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => showToast('已复制到剪贴板'));
+        });
+      };
+
+      if (type === 'barcode') {
+        const svg = new XMLSerializer().serializeToString(barcodeSvg);
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.width; c.height = img.height;
+          c.getContext('2d').drawImage(img, 0, 0);
+          process(c);
+        };
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+      } else {
+        process(qrcodeCanvas);
       }
     }
 
     function downloadImage(type, format) {
-      if (type === 'barcode') {
-        const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+      let url = '';
+      let name = type + '.' + format;
 
-        if (format === 'svg') {
-          const blob = new Blob([svgData], { type: 'image/svg+xml' });
-          const url = URL.createObjectURL(blob);
-          downloadUrl(url, 'barcode.svg');
-        } else {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          const img = new Image();
-
-          img.onload = () => {
-            canvas.width = img.width * 2;
-            canvas.height = img.height * 2;
-            ctx.scale(2, 2);
-            ctx.fillStyle = document.getElementById('barcode-bg-color').value;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-
-            const url = canvas.toDataURL('image/png');
-            downloadUrl(url, 'barcode.png');
-          };
-          img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-        }
+      if (type === 'barcode' && format === 'svg') {
+        const svg = new XMLSerializer().serializeToString(barcodeSvg);
+        url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+      } else if (type === 'barcode' && format === 'png') {
+        const svg = new XMLSerializer().serializeToString(barcodeSvg);
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.width * 2; c.height = img.height * 2;
+          c.getContext('2d').scale(2, 2);
+          c.getContext('2d').drawImage(img, 0, 0);
+          triggerDownload(c.toDataURL(), name);
+        };
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+        return;
       } else {
-        if (format === 'svg') {
-          const size = parseInt(document.getElementById('qrcode-size').value);
-          const fgColor = document.getElementById('qrcode-fg-color').value;
-          const bgColor = document.getElementById('qrcode-bg-color').value;
-          const content = document.getElementById('qrcode-content').value;
-          const level = document.getElementById('qrcode-level').value;
-          const style = document.getElementById('qrcode-style').value;
-
-          const qr = qrcode(0, level);
-          qr.addData(content);
-          qr.make();
-
-          const moduleCount = qr.getModuleCount();
-          let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${moduleCount} ${moduleCount}">`;
-          svg += `<rect width="${moduleCount}" height="${moduleCount}" fill="${bgColor}"/>`;
-
-          for (let row = 0; row < moduleCount; row++) {
-            for (let col = 0; col < moduleCount; col++) {
-              if (qr.isDark(row, col)) {
-                if (style === 'dots') {
-                  svg += `<circle cx="${col + 0.5}" cy="${row + 0.5}" r="0.4" fill="${fgColor}"/>`;
-                } else if (style === 'rounded') {
-                  svg += `<rect x="${col + 0.1}" y="${row + 0.1}" width="0.8" height="0.8" rx="0.2" fill="${fgColor}"/>`;
-                } else {
-                  svg += `<rect x="${col}" y="${row}" width="1" height="1" fill="${fgColor}"/>`;
-                }
-              }
-            }
-          }
-          svg += '</svg>';
-
-          const blob = new Blob([svg], { type: 'image/svg+xml' });
-          const url = URL.createObjectURL(blob);
-          downloadUrl(url, 'qrcode.svg');
-        } else {
-          const url = qrcodeCanvas.toDataURL('image/png');
-          downloadUrl(url, 'qrcode.png');
-        }
+        url = qrcodeCanvas.toDataURL();
       }
+      triggerDownload(url, name);
       showToast('下载成功');
     }
 
-    function downloadUrl(url, filename) {
+    function triggerDownload(url, name) {
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
+      a.href = url; a.download = name;
       a.click();
-      document.body.removeChild(a);
     }
 
-    function addToHistory(type, content, fgColor, bgColor) {
-      const item = {
-        type,
-        content,
-        fgColor,
-        bgColor,
-        timestamp: Date.now()
-      };
+    function copyDecodedText() {
+      const t = document.getElementById('decode-text').value;
+      if (t) navigator.clipboard.writeText(t).then(() => showToast('文本已复制'));
+    }
 
-      // Avoid duplicates
-      const exists = history.some(h => h.content === content && h.type === type);
-      if (!exists) {
-        history.unshift(item);
-        if (history.length > 12) history.pop();
-        localStorage.setItem('codeforge-history', JSON.stringify(history));
-        renderHistory();
+    function downloadDecodedText() {
+      const t = document.getElementById('decode-text').value;
+      if (!t) return;
+      triggerDownload(URL.createObjectURL(new Blob([t])), 'decoded.txt');
+    }
+
+    function regenerateFromResult(type) {
+      const t = document.getElementById('decode-text').value;
+      if (!t) return;
+
+      if (type === 'barcode') {
+        switchTab('barcode');
+        document.getElementById('barcode-content').value = t.substring(0, 50);
+        generateBarcode();
+      } else {
+        switchTab('qrcode');
+        document.getElementById('qrcode-content').value = t;
+        generateQRCode();
       }
+    }
 
+    function incrementCount() {
       totalGenerated++;
       localStorage.setItem('codeforge-count', totalGenerated);
       document.getElementById('total-generated').textContent = totalGenerated;
     }
 
-    function renderHistory() {
-      const container = document.getElementById('history-list');
-
-      if (history.length === 0) {
-        container.innerHTML = `<div class="text-center text-[var(--muted)] text-sm py-8 col-span-full">暂无历史记录</div>`;
-        return;
+    function addToHistory(type, content, fg, bg) {
+      const exists = history.some(h => h.content === content && h.type === type);
+      if (!exists) {
+        history.unshift({ type, content, fg, bg, timestamp: Date.now() });
+        if (history.length > 12) history.pop();
+        localStorage.setItem('codeforge-history', JSON.stringify(history));
+        renderHistory();
       }
+      incrementCount();
+    }
 
-      container.innerHTML = history.map((item, index) => `
-        <div class="history-item" onclick="restoreFromHistory(${index})" title="${item.content}">
-          <div class="history-thumb" style="background: ${item.bgColor}">
-            ${item.type === 'barcode' ? '<svg width="40" height="30"><rect width="40" height="30" fill="' + item.fgColor + '"/></svg>' : '<div style="width: 30px; height: 30px; background: ' + item.fgColor + '; border-radius: 4px;"></div>'}
+    function renderHistory() {
+      const c = document.getElementById('history-list');
+      if (history.length === 0) { c.innerHTML = '<div class="text-center text-[var(--muted)] text-sm py-8 col-span-full">暂无历史记录</div>'; return; }
+
+      c.innerHTML = history.map((h, i) => `
+        <div class="flex items-center gap-3 p-2 bg-[var(--bg)] rounded-lg cursor-pointer hover:bg-[rgba(56,189,248,0.05)]" onclick="restoreFromHistory(${i})">
+          <div class="w-12 h-12 bg-white rounded-md flex items-center justify-center overflow-hidden flex-shrink-0" style="background: ${h.bg}">
+            ${h.type === 'barcode' ? `<svg width="40" height="30"><rect width="40" height="30" fill="${h.fg}"/></svg>` :
+          h.type === 'decode' ? `<div style="width:30px;height:30px;background:#38bdf8;border-radius:4px;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"></circle></svg></div>` :
+            `<div style="width:30px;height:30px;background:${h.fg};border-radius:4px"></div>`}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-medium truncate">${item.content}</p>
-            <p class="text-xs text-[var(--muted)]">${item.type === 'barcode' ? '条形码' : '二维码'}</p>
+            <p class="text-xs font-medium truncate">${h.content}</p>
+            <p class="text-xs text-[var(--muted)]">${h.type === 'barcode' ? '条形码' : h.type === 'decode' ? '解码' : '二维码'}</p>
           </div>
         </div>
       `).join('');
     }
 
-    function restoreFromHistory(index) {
-      const item = history[index];
-
-      if (item.type === 'barcode') {
+    function restoreFromHistory(i) {
+      const h = history[i];
+      if (h.type === 'barcode') {
         switchTab('barcode');
-        document.getElementById('barcode-content').value = item.content;
-        document.getElementById('barcode-line-color').value = item.fgColor;
-        document.getElementById('barcode-line-color-text').value = item.fgColor;
-        document.getElementById('barcode-bg-color').value = item.bgColor;
-        document.getElementById('barcode-bg-color-text').value = item.bgColor;
-        generateBarcode();
-      } else {
+        document.getElementById('barcode-content').value = h.content;
+        document.getElementById('barcode-line-color').value = h.fg;
+        document.getElementById('barcode-bg-color').value = h.bg;
+        previewBarcode();
+      } else if (h.type === 'qrcode') {
         switchTab('qrcode');
-        document.getElementById('qrcode-content').value = item.content;
-        document.getElementById('qrcode-fg-color').value = item.fgColor;
-        document.getElementById('qrcode-fg-color-text').value = item.fgColor;
-        document.getElementById('qrcode-bg-color').value = item.bgColor;
-        document.getElementById('qrcode-bg-color-text').value = item.bgColor;
-        generateQRCode();
+        document.getElementById('qrcode-content').value = h.content;
+        document.getElementById('qrcode-fg-color').value = h.fg;
+        document.getElementById('qrcode-bg-color').value = h.bg;
+        previewQRCode();
+      } else {
+        switchTab('decoder');
+        document.getElementById('decode-text').value = h.content;
+        document.getElementById('decode-result').classList.add('success');
       }
-
-      showToast('已从历史记录恢复');
     }
 
     function clearHistory() {
       history = [];
       localStorage.removeItem('codeforge-history');
       renderHistory();
-      showToast('历史记录已清空');
     }
 
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      const toastMessage = document.getElementById('toast-message');
-
-      toastMessage.textContent = message;
-      toast.style.background = type === 'warning' ? 'var(--warning)' : type === 'error' ? '#ef4444' : 'var(--success)';
-      toast.classList.add('show');
-
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-message').textContent = msg;
+      t.style.background = type === 'warning' ? 'var(--warning)' : type === 'error' ? 'var(--error)' : 'var(--success)';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
     }
   </script>
 </body>
